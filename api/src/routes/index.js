@@ -2,15 +2,19 @@ const { Router } = require('express');
 // Importar todos los routers;
 // Ejemplo: const authRouter = require('./auth.js');
 const axios = require("axios");
-const { Dog,Temperament} = require ('../db')
+const { Dog, Temperament } = require ('../db')
 
 const router = Router();
+const {YOUR_API_KEY} = process.env;
 
 // Configurar los routers
 // Ejemplo: router.use('/auth', authRouter);
 
+
+//--FUNCIONES DE BASE DE DATOS--//
+
 const getApiData = async () => {
-    const infoApi = await axios.get("https://api.thedogapi.com/v1/breeds") 
+    const infoApi = await axios.get(`https://api.thedogapi.com/v1/breeds?api_key=${YOUR_API_KEY}`) 
     
     const data = await infoApi.data.map(element => {
         return {
@@ -18,6 +22,7 @@ const getApiData = async () => {
             name: element.name,
             altura: element.height,
             peso: element.weight,
+            temperamento: element.temperament,
             lifeSpan: element.life_span,
             image: element.image, 
         };
@@ -42,8 +47,8 @@ const getAllDogs = async () => {
     return allDogs;
 }
 
-//--FUNCIONES RUTAS DE DOGS--//
-router.get("/breeds", async (req, res) => {
+//--FUNCIONES RUTAS DE DOGS--// Esta ruta la debo usar en el front para buscar por nombre
+router.get("/dogs", async (req, res) => {
     const { name } = req.query;
     let info = await getAllDogs();
 
@@ -57,6 +62,36 @@ router.get("/breeds", async (req, res) => {
         res.status(200).send(info);
     }
 })
+
+router.get('/temperaments',async(req,res)=>{
+    try{
+        let tempeSet = new Set();
+        const temperamentApi = await axios.get(`https://api.thedogapi.com/v1/breeds?api_key=${YOUR_API_KEY}`)
+
+       
+        temperamentApi.data.forEach(dog => {
+            let tempArray = dog.temperament ? dog.temperament.split(', ') : []
+            tempArray.forEach(temperament => tempeSet.add(temperament))
+
+        })
+        const tempe = Array.from(tempeSet)
+
+        tempe.forEach(async(elem)=>{
+            await Temperament.findOrCreate({
+                    where:{
+                        name:elem,
+                    }
+                });
+        });
+
+        const temperamentDog = await Temperament.findAll();
+        res.json(temperamentDog);
+        
+    }catch (error){
+        console.log(error);
+    }
+});
+
 
 
 
