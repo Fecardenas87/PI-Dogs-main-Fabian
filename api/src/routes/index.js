@@ -20,30 +20,36 @@ const getApiData = async () => {
         return {
             id: element.id,
             name: element.name,
-            altura: element.height,
-            peso: element.weight,
-            temperamento: element.temperament,
-            lifeSpan: element.life_span,
-            image: element.image, 
+            temperament: element.temperament,
+            life_span: element.life_span,
+            image: "https://cdn2.thedogapi.com/images/" + element.reference_image_id + ".jpg",
+            
+            minHeight: element.height.metric.slice(0,2),
+            maxHeight: element.height.metric.slice(4),
+            minWeight: element.weight.metric.slice(0,2),
+            maxWeight: element.weight.metric.slice(4)
         };
     });
     return data;
 } 
 
 const getDbData = async () => {
-    return await Dog.findAll({
+    const infoDb = await Dog.findAll({
+        include: [{
         model: Temperament,
         attributes: ["name"],
         through: {
             attributes: [],
         }
-    })
+    }]
+});
+return infoDb;
 }
 
 const getAllDogs = async () => {
     const infoApi = await getApiData();
     const dbData = await getDbData();
-    const allDogs = infoApi.concat(dbData);
+    const allDogs = await infoApi.concat(dbData);
     return allDogs;
 }
 
@@ -92,9 +98,60 @@ router.get('/temperaments',async(req,res)=>{
     }
 });
 
+router.post("/dogs", async (req,res) => {
+    let {
+        name,
+        minHeight, 
+        maxHeight, 
+        minWeight, 
+        maxWeight, 
+        life_span,
+        image,
+        temperament,
+        createdInDataBase,
+    } = req.body
 
+    //if (!name){
+    //return res.json({error: "Name is required"})
+    //}
 
+    //const existe = await Dog.findOne({ where: { name: name } });
+    //if (existe) return res.json({ error: "The dog already exists" });
 
+    //try {
+    let dogCreate = await Dog.create({
+        name,
+        minHeight, 
+        maxHeight, 
+        minWeight, 
+        maxWeight,
+        life_span,
+        image,
+        temperament,
+        createdInDataBase,
+    })
+
+   let temperamentDb = await Temperament.findAll({ 
+    where: { name : temperament} 
+    })
+
+    dogCreate.addTemperament(temperamentDb);
+    res.send("Your dog has been created");
+//} catch(error){
+    //next(error)
+
+});
+
+router.get("/dogs/:id", async (req, res) => {
+    const {id} = req.params;
+    const infoApi = await getAllDogs()
+    if (id) {
+        let dogById = await infoApi.filter ( dog => dog.id == id);
+        dogById.length?
+        res.status(200).json(dogById) :
+        res.status(404).send("Dog not found")
+    }
+})
 
 
 module.exports = router;
