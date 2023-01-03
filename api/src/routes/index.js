@@ -22,7 +22,7 @@ const getApiData = async () => {
             name: element.name,
             temperament: element.temperament,
             life_span: element.life_span,
-            image: "https://cdn2.thedogapi.com/images/" + element.reference_image_id + ".jpg",
+            image: element.reference_image_id + ".jpg",
             
             minHeight: element.height.metric.slice(0,2),
             maxHeight: element.height.metric.slice(4),
